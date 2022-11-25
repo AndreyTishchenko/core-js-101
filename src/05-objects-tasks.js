@@ -5,57 +5,50 @@
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object        *
  *                                                                                                *
  ************************************************************************************************ */
-
-
 /**
  * Returns the rectangle object with width and height parameters and getArea() method
- *
  * @param {number} width
  * @param {number} height
  * @return {Object}
- *
  * @example
  *    const r = new Rectangle(10,20);
  *    console.log(r.width);       // => 10
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+ function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = function getArea() {
+    return this.width * this.height;
+  };
 }
-
-
 /**
  * Returns the JSON representation of specified object
- *
  * @param {object} obj
  * @return {string}
- *
  * @example
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
-
-
 /**
  * Returns the object of specified type from JSON representation
- *
  * @param {Object} proto
  * @param {string} json
  * @return {object}
- *
  * @example
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
- *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const args = JSON.parse(json);
+  Object.setPrototypeOf(args, proto);
+  // const obj = Object.create(proto);
+  // return Object.assign(obj, args) or{...obj, ...args};
+  return args;
 }
-
-
 /**
  * Css selectors builder
  *
@@ -83,7 +76,6 @@ function fromJSON(/* proto, json */) {
  * clear and readable as possible.
  *
  * @example
- *
  *  const builder = cssSelectorBuilder;
  *
  *  builder.id('main').class('container').class('editable').stringify()
@@ -109,37 +101,76 @@ function fromJSON(/* proto, json */) {
  *
  *  For more examples see unit tests.
  */
-
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  selector: '',
+
+  element(value) {
+    this.throwError(1);
+    const css = Object.create(this);
+    css.error = 1;
+    css.selector = this.selector + value;
+    return css;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    this.throwError(2);
+    const css = Object.create(this);
+    css.error = 2;
+    css.selector = `${this.selector}#${value}`;
+    return css;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    this.throwError(3);
+    const css = Object.create(this);
+    css.error = 3;
+    css.selector = `${this.selector}.${value}`;
+    return css;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    this.throwError(4);
+    const css = Object.create(this);
+    css.error = 4;
+    css.selector = `${this.selector}[${value}]`;
+    return css;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    this.throwError(5);
+    const css = Object.create(this);
+    css.error = 5;
+    css.selector = `${this.selector}:${value}`;
+    return css;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    this.throwError(6);
+    const css = Object.create(this);
+    css.error = 6;
+    css.selector = `${this.selector}::${value}`;
+    return css;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const css = Object.create(this);
+    css.selector = `${selector1.selector} ${combinator} ${selector2.selector}`;
+    return css;
+  },
+
+  stringify() {
+    return this.selector;
+  },
+
+  throwError(error) {
+    if (this.error > error) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    if (this.error === error && (error === 1 || error === 2 || error === 6)) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
   },
 };
-
 
 module.exports = {
   Rectangle,
