@@ -7,24 +7,35 @@
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures                            *
  *                                                                                             *
  ********************************************************************************************* */
+
+
 /**
  * Returns the functions composition of two specified functions f(x) and g(x).
  * The result of compose is to be a function of one argument, (lets call the argument x),
  * which works like applying function f to the result of applying function g to x, i.e.
  *  getComposition(f,g)(x) = f(g(x))
+ *
  * @param {Function} f
  * @param {Function} g
  * @return {Function}
+ *
  * @example
  *   getComposition(Math.sin, Math.asin)(x) => Math.sin(Math.asin(x))
+ *
  */
- function getComposition(f, g) {
-  return (arg) => f(g(arg));
+function getComposition(f, g) {
+  return function func(x) {
+    return f(g(x));
+  };
 }
+
+
 /**
  * Returns the math power function with the specified exponent
+ *
  * @param {number} exponent
  * @return {Function}
+ *
  * @example
  *   const power2 = getPowerFunction(2); // => x^2
  *   power2(2) => 4
@@ -33,15 +44,22 @@
  *   const power05 = getPowerFunction(0.5); // => x^0.5
  *   power05(4) => 2
  *   power05(16) => 4
+ *
  */
 function getPowerFunction(exponent) {
-  return (arg) => arg ** exponent;
+  return function func(x) {
+    return x ** exponent;
+  };
 }
+
+
 /**
  * Returns the polynom function of one argument based on specified coefficients.
  * See: https://en.wikipedia.org/wiki/Polynomial#Definition
+ *
  * @params {integer}
  * @return {Function}
+ *
  * @example
  *   getPolynom(2,3,5) => y = 2*x^2 + 3*x + 5
  *   getPolynom(1,-3)  => y = x - 3
@@ -49,24 +67,29 @@ function getPowerFunction(exponent) {
  *   getPolynom()      => null
  */
 function getPolynom(...args) {
-  return (x) => {
-    let size = args.length;
-    if (size === 0) {
-      return null;
+  return function func(x) {
+    const arr = Array.from(args);
+    if (arr.length === 3) {
+      return args[0] * (x ** 2) + arr[1] * x + arr[2];
     }
-    let y = 0;
-    while (size > 0) {
-      y += args[args.length - size] * x ** (size - 1);
-      size -= 1;
+    if (arr.length === 2) {
+      return arr[0] * x + arr[1];
     }
-    return y;
+    if (arr.length === 1) {
+      return arr[0];
+    }
+    return null;
   };
 }
+
+
 /**
  * Memoizes passed function and returns function
  * which invoked first time calls the passed function and then always returns cached result.
+ *
  * @params {Function} func - function to memoize
  * @return {Function} memoized function
+ *
  * @example
  *   const memoizer = memoize(() => Math.random());
  *   memoizer() => some random number  (first run, evaluates the result of Math.random())
@@ -75,21 +98,24 @@ function getPolynom(...args) {
  *   memoizer() => the same random number  (next run, returns the previous cached result)
  */
 function memoize(func) {
-  const memory = Object.create(null);
-  return (arg) => {
-    if (memory[arg]) {
-      return memory[arg];
+  const cache = {};
+  return function f(x) {
+    if (!(x in cache)) {
+      cache[x] = func.call(this, x);
     }
-    memory[arg] = func(arg);
-    return memory[arg];
+    return cache[x];
   };
 }
+
+
 /**
  * Returns the function trying to call the passed function and if it throws,
  * retrying it specified number of attempts.
+ *
  * @param {Function} func
  * @param {number} attempts
  * @return {Function}
+ *
  * @example
  * const attempt = 0, retryer = retry(() => {
  *      if (++attempt % 2) throw new Error('test');
@@ -98,20 +124,25 @@ function memoize(func) {
  * retryer() => 2
  */
 function retry(func, attempts) {
-  let counter = attempts;
-  function handleError() {
-    try {
-      counter -= 1;
-      return func();
-    } catch (error) {
-      if (counter > 0) {
-        return handleError();
+  return function f() {
+    let i = 0;
+    function foo() {
+      try {
+        func();
+      } catch (e) {
+        if (i < attempts) {
+          i += 1;
+          return foo();
+        }
       }
-      return error;
+      return 'privet';
     }
-  }
-  return handleError;
+    foo();
+    return func();
+  };
 }
+
+
 /**
  * Returns the logging wrapper for the specified method,
  * Logger has to log the start and end of calling the specified function.
@@ -119,30 +150,53 @@ function retry(func, attempts) {
  * The format of output log is:
  * <function name>(<arg1>, <arg2>,...,<argN>) starts
  * <function name>(<arg1>, <arg2>,...,<argN>) ends
+ *
+ *
  * @param {Function} func
  * @param {Function} logFunc - function to output log with single string argument
  * @return {Function}
+ *
  * @example
+ *
  * const cosLogger = logger(Math.cos, console.log);
  * const result = cosLogger(Math.PI));     // -1
  *
  * log from console.log:
  * cos(3.141592653589793) starts
  * cos(3.141592653589793) ends
+ *
  */
 function logger(func, logFunc) {
-  return (...args) => {
-    const input = JSON.stringify(args).slice(1, -1);
-    logFunc(`${func.name}(${input}) starts`);
-    const result = func(...args);
-    logFunc(`${func.name}(${input}) ends`);
-    return result;
+  return function wrapper(...args) {
+    let arr = Array.from(args);
+    arr = arr.map((val) => {
+      let temp = val;
+      if (val instanceof Array) {
+        temp = val.map((el) => {
+          let tem = el;
+          if (typeof el === 'string') {
+            tem = `"${el}"`;
+          }
+          return tem;
+        });
+        temp = `[${temp}]`;
+      }
+      return temp;
+    });
+    logFunc(`${func.name}(${arr}) starts`);
+    const res = func.call(this, ...args);
+    logFunc(`${func.name}(${arr}) ends`);
+    return res;
   };
 }
+
+
 /**
  * Return the function with partial applied arguments
+ *
  * @param {Function} fn
  * @return {Function}
+ *
  * @example
  *   const fn = function(x1,x2,x3,x4) { return  x1 + x2 + x3 + x4; };
  *   partialUsingArguments(fn, 'a')('b','c','d') => 'abcd'
@@ -151,13 +205,26 @@ function logger(func, logFunc) {
  *   partialUsingArguments(fn, 'a','b','c','d')() => 'abcd'
  */
 function partialUsingArguments(fn, ...args1) {
-  return (...args2) => fn(...args1, ...args2);
+  const arr = [];
+  args1.forEach((el) => {
+    arr.push(el);
+  });
+  return function funct(...args) {
+    args.forEach((el) => {
+      arr.push(el);
+    });
+    return fn(...arr);
+  };
 }
+
+
 /**
  * Returns the id generator function that returns next integer starting
  * from specified number every time when invoking.
+ *
  * @param {Number} startFrom
  * @return {Function}
+ *
  * @example
  *   const getId4 = getIdGenerator(4);
  *   const getId10 = gerIdGenerator(10);
@@ -169,12 +236,13 @@ function partialUsingArguments(fn, ...args1) {
  *   getId10() => 11
  */
 function getIdGeneratorFunction(startFrom) {
-  let start = startFrom - 1;
-  return () => {
-    start += 1;
-    return start;
+  let i = startFrom - 1;
+  return function fun() {
+    i += 1;
+    return i;
   };
 }
+
 
 module.exports = {
   getComposition,

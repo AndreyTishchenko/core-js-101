@@ -5,28 +5,36 @@
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object        *
  *                                                                                                *
  ************************************************************************************************ */
+
+
 /**
  * Returns the rectangle object with width and height parameters and getArea() method
+ *
  * @param {number} width
  * @param {number} height
  * @return {Object}
+ *
  * @example
  *    const r = new Rectangle(10,20);
  *    console.log(r.width);       // => 10
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
- function Rectangle(width, height) {
+function Rectangle(width, height) {
   this.width = width;
   this.height = height;
-  this.getArea = function getArea() {
-    return this.width * this.height;
+  this.getArea = function f() {
+    return width * height;
   };
 }
+
+
 /**
  * Returns the JSON representation of specified object
+ *
  * @param {object} obj
  * @return {string}
+ *
  * @example
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
@@ -34,21 +42,26 @@
 function getJSON(obj) {
   return JSON.stringify(obj);
 }
+
+
 /**
  * Returns the object of specified type from JSON representation
+ *
  * @param {Object} proto
  * @param {string} json
  * @return {object}
+ *
  * @example
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
+ *
  */
 function fromJSON(proto, json) {
-  const args = JSON.parse(json);
-  Object.setPrototypeOf(args, proto);
-  // const obj = Object.create(proto);
-  // return Object.assign(obj, args) or{...obj, ...args};
-  return args;
+  const obj = JSON.parse(json);
+  const values = Object.values(obj);
+  return new proto.constructor(...values);
 }
+
+
 /**
  * Css selectors builder
  *
@@ -76,6 +89,7 @@ function fromJSON(proto, json) {
  * clear and readable as possible.
  *
  * @example
+ *
  *  const builder = cssSelectorBuilder;
  *
  *  builder.id('main').class('container').class('editable').stringify()
@@ -101,76 +115,111 @@ function fromJSON(proto, json) {
  *
  *  For more examples see unit tests.
  */
-const cssSelectorBuilder = {
-  selector: '',
 
+class My {
+  constructor(value, ident) {
+    this.value = value;
+    this.ident = ident;
+  }
+}
+
+const cssSelectorBuilder = {
   element(value) {
-    this.throwError(1);
-    const css = Object.create(this);
-    css.error = 1;
-    css.selector = this.selector + value;
-    return css;
+    if (this.ident === 'element') {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    } else if (this.ident !== undefined) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const ident = 'element';
+    return new My(value, ident);
   },
 
   id(value) {
-    this.throwError(2);
-    const css = Object.create(this);
-    css.error = 2;
-    css.selector = `${this.selector}#${value}`;
-    return css;
+    if (this.ident === 'id') {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    } else if (this.ident === 'pseudo' || this.ident === 'class' || this.ident === 'attr' || this.ident === 'psclass') {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const ident = 'id';
+    let newValue;
+    if (this.value) {
+      newValue = `${this.value}#${value}`;
+    } else {
+      newValue = `#${value}`;
+    }
+    return new My(newValue, ident);
   },
 
   class(value) {
-    this.throwError(3);
-    const css = Object.create(this);
-    css.error = 3;
-    css.selector = `${this.selector}.${value}`;
-    return css;
+    if (this.ident === 'pseudo' || this.ident === 'attr' || this.ident === 'psclass') {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const ident = 'class';
+    let newValue;
+    if (this.value) {
+      newValue = `${this.value}.${value}`;
+    } else {
+      newValue = `.${value}`;
+    }
+    return new My(newValue, ident);
   },
 
   attr(value) {
-    this.throwError(4);
-    const css = Object.create(this);
-    css.error = 4;
-    css.selector = `${this.selector}[${value}]`;
-    return css;
+    if (this.ident === 'pseudo' || this.ident === 'psclass') {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const ident = 'attr';
+    let newValue;
+    if (this.value) {
+      newValue = `${this.value}[${value}]`;
+    } else {
+      newValue = `[${value}]`;
+    }
+    return new My(newValue, ident);
   },
 
   pseudoClass(value) {
-    this.throwError(5);
-    const css = Object.create(this);
-    css.error = 5;
-    css.selector = `${this.selector}:${value}`;
-    return css;
+    if (this.ident === 'pseudo') {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const ident = 'psclass';
+    let newValue;
+    if (this.value) {
+      newValue = `${this.value}:${value}`;
+    } else {
+      newValue = `:${value}`;
+    }
+    return new My(newValue, ident);
   },
 
   pseudoElement(value) {
-    this.throwError(6);
-    const css = Object.create(this);
-    css.error = 6;
-    css.selector = `${this.selector}::${value}`;
-    return css;
+    if (this.ident === 'pseudo') {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    const ident = 'pseudo';
+    let newValue;
+    if (this.value) {
+      newValue = `${this.value}::${value}`;
+    } else {
+      newValue = `::${value}`;
+    }
+    return new My(newValue, ident);
   },
 
   combine(selector1, combinator, selector2) {
-    const css = Object.create(this);
-    css.selector = `${selector1.selector} ${combinator} ${selector2.selector}`;
-    return css;
+    const a = selector1.stringify();
+    const b = selector2.stringify();
+    const combVal = `${a} ${combinator} ${b}`;
+    return new My(combVal, 'no');
   },
 
   stringify() {
-    return this.selector;
-  },
-
-  throwError(error) {
-    if (this.error > error) {
-      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
-    }
-    if (this.error === error && (error === 1 || error === 2 || error === 6)) {
-      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
-    }
+    return this.value;
   },
 };
+
+Object.assign(My.prototype, cssSelectorBuilder);
+
 
 module.exports = {
   Rectangle,
